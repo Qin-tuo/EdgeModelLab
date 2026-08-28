@@ -675,7 +675,7 @@ def test_cli_populates_vendor_paths_and_uses_matching_seed_references(
         == 0
     )
 
-    vendor = project_root / "platforms" / "rockchip-rk1828" / "vendor"
+    vendor = project_root / "platforms" / "rockchip-rk3588-rk1828" / "vendor"
     assert checkout_calls == [
         (manifest.toolkit, vendor / "rknn3-toolkit", toolkit_seed),
         (manifest.model_zoo, vendor / "rknn3-model-zoo", model_zoo_seed),
@@ -710,7 +710,7 @@ def test_cli_requires_absolute_paths(option: str, tmp_path: Path) -> None:
 
 
 def test_bootstrap_wrapper_has_exact_content_and_executable_mode() -> None:
-    wrapper = Path("platforms/rockchip-rk1828/scripts/bootstrap")
+    wrapper = Path("platforms/rockchip-rk3588-rk1828/scripts/bootstrap")
 
     assert wrapper.read_text(encoding="utf-8") == (
         "#!/usr/bin/env sh\n"

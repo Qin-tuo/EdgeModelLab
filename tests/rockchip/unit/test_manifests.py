@@ -74,8 +74,8 @@ def _write_yaml(path: Path, data: object) -> Path:
 
 
 def test_repository_manifests_pin_verified_versions() -> None:
-    upstream = load_upstream_manifest(Path("platforms/rockchip-rk1828/config/upstream.yaml"))
-    model = load_model_manifest(Path("platforms/rockchip-rk1828/config/qwen2_5_0_5b.yaml"))
+    upstream = load_upstream_manifest(Path("platforms/rockchip-rk3588-rk1828/config/upstream.yaml"))
+    model = load_model_manifest(Path("platforms/rockchip-rk3588-rk1828/config/qwen2_5_0_5b.yaml"))
     assert upstream.toolkit.repository == (
         "https://github.com/airockchip/rknn3-toolkit.git"
     )
@@ -214,7 +214,7 @@ def test_repository_manifests_pin_verified_versions() -> None:
 
 
 def test_repository_qwen3_manifest_pins_vendor_demo_inputs() -> None:
-    model = load_model_manifest(Path("platforms/rockchip-rk1828/config/qwen3_4b.yaml"))
+    model = load_model_manifest(Path("platforms/rockchip-rk3588-rk1828/config/qwen3_4b.yaml"))
 
     assert model.model_id == "qwen3_4b"
     assert model.repository == "Qwen/Qwen3-4B"

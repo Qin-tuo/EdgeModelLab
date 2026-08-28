@@ -303,7 +303,7 @@ def _reference(seed_workspace: Path | None, name: str) -> Path | None:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     manifest = load_upstream_manifest(args.upstream_manifest)
-    vendor = args.project_root / "platforms" / "rockchip-rk1828" / "vendor"
+    vendor = args.project_root / "platforms" / "rockchip-rk3588-rk1828" / "vendor"
     ensure_checkout(
         manifest.toolkit,
         vendor / "rknn3-toolkit",

@@ -45,10 +45,10 @@ def _fixture(tmp_path: Path) -> tuple[Path, object, object, Path]:
     project_root = tmp_path / "project"
     project_root.mkdir()
     model = dataclasses.replace(
-        load_model_manifest(Path("platforms/rockchip-rk1828/config/qwen3_4b.yaml")),
+        load_model_manifest(Path("platforms/rockchip-rk3588-rk1828/config/qwen3_4b.yaml")),
         demo_files=tuple(_pin(path, content) for path, content in DEMO_CONTENTS.items()),
     )
-    upstream = load_upstream_manifest(Path("platforms/rockchip-rk1828/config/upstream.yaml"))
+    upstream = load_upstream_manifest(Path("platforms/rockchip-rk3588-rk1828/config/upstream.yaml"))
     demo_root = (
         project_root
         / "artifacts/work/qwen3_4b/install/rknn_Qwen3_demo"

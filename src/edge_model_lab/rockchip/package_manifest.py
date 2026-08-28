@@ -88,7 +88,7 @@ def _schema_path() -> Path:
     return (
         project_root
         / "platforms"
-        / "rockchip-rk1828"
+        / "rockchip-rk3588-rk1828"
         / "schema"
         / "deployment-package.schema.json"
     )

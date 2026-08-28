@@ -8,7 +8,7 @@ fi
 
 MODEL=$1
 ROOT=${EDGE_MODEL_LAB_ROOT:-/home/barry/EdgeModelLab}
-VENDOR=$ROOT/platforms/rockchip-rk1828/vendor/rknn3-model-zoo
+VENDOR=$ROOT/platforms/rockchip-rk3588-rk1828/vendor/rknn3-model-zoo
 
 case "$MODEL" in
     Qwen2.5-0.5B-Instruct)

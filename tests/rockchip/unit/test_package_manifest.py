@@ -132,7 +132,7 @@ def _valid_manifest(file_path: str = "bin/rknn_qwen_runner") -> dict[str, object
 
 
 def _valid_qwen3_manifest() -> dict[str, object]:
-    model = load_model_manifest(Path("platforms/rockchip-rk1828/config/qwen3_4b.yaml"))
+    model = load_model_manifest(Path("platforms/rockchip-rk3588-rk1828/config/qwen3_4b.yaml"))
     manifest = _valid_manifest("bin/rknn_qwen3_demo")
     manifest["package_profile"] = "vendor_demo"
     manifest["entrypoint"] = "bin/rknn_qwen3_demo"
@@ -153,7 +153,7 @@ def _valid_qwen3_manifest() -> dict[str, object]:
 
 
 def test_package_source_pins_match_model_manifest() -> None:
-    model = load_model_manifest(Path("platforms/rockchip-rk1828/config/qwen2_5_0_5b.yaml"))
+    model = load_model_manifest(Path("platforms/rockchip-rk3588-rk1828/config/qwen2_5_0_5b.yaml"))
 
     assert [
         {

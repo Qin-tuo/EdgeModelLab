@@ -179,7 +179,7 @@ def test_executable_wrapper_invokes_module_help(tmp_path: Path) -> None:
     environment["PYTHONPATH"] = str(Path("src").resolve())
 
     result = subprocess.run(
-        [str(Path("platforms/rockchip-rk1828/scripts/bootstrap").resolve()), "--help"],
+        [str(Path("platforms/rockchip-rk3588-rk1828/scripts/bootstrap").resolve()), "--help"],
         cwd=tmp_path,
         env=environment,
         check=False,

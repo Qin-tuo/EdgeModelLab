@@ -10,13 +10,17 @@ tasks or duplicate model data.
 
 ## Scope
 
-This migration covers only:
+The initial migration covers:
 
 - `Qwen2.5-0.5B-Instruct`
 - `Qwen3-4B`
 - NVIDIA Jetson Orin NX host-side model production
 - Horizon S100 host-side model production
 - Rockchip RK1828 host-side model production
+
+Future source downloads are not restricted to these two models. The user
+creates the desired directory and invokes the official Hugging Face or
+ModelScope CLI directly.
 
 It does not migrate RTX 5070 work, S100 ACT/SmolVLA work, unrelated models,
 board runtime code, inference application code, or benchmark execution code.
@@ -41,8 +45,7 @@ board runtime code, inference application code, or benchmark execution code.
 |           |-- horizon-s100/
 |           `-- rockchip-rk1828/
 |-- common/
-|   |-- environment.yml
-|   `-- download.py
+|   `-- environment.yml
 |-- platforms/
 |   |-- nvidia-orin/
 |   |   |-- Dockerfile
@@ -50,7 +53,7 @@ board runtime code, inference application code, or benchmark execution code.
 |   |-- horizon-s100/
 |   |   |-- Dockerfile
 |   |   `-- scripts/
-|   `-- rockchip-rk1828/
+|   `-- rockchip-rk3588-rk1828/
 |       |-- Dockerfile
 |       |-- scripts/
 |       `-- vendor/
@@ -69,19 +72,20 @@ unaltered, complete upstream model. `onnx` contains common intermediate
 exports. Each platform directory contains its conversion outputs and complete
 deployable bundle.
 
-`common` owns the one Conda environment definition and source download task.
-The actual Conda environment is named `qwen-common` and remains under
-`/home/barry/miniconda3/envs/qwen-common`. ONNX export stays in the matching
-platform container because the verified exporters depend on vendor tooling.
+`common` owns only the Conda environment definition that installs the official
+Hugging Face and ModelScope command-line tools. EdgeModelLab does not provide a
+custom download wrapper or model allowlist. The actual environment is named
+`qwen-common` and remains under `/home/barry/miniconda3/envs/qwen-common`.
+ONNX export stays in the matching platform container because the verified
+exporters depend on vendor tooling.
 
 `platforms` owns platform-specific Dockerfiles, vendor tooling, conversion,
 quantization, and package assembly. Docker continues to manage image and
 container data under `/var/lib/docker`; those files are never manipulated
 directly.
 
-`tmp` contains disposable downloads, conversion staging data, and intermediate
-build files. A successful task publishes its result into the matching model
-directory; failed tasks leave persistent model data unchanged.
+`tmp` contains disposable conversion staging data and intermediate build files.
+Manual source downloads write directly to the directory selected by the user.
 
 ## Container Access
 
