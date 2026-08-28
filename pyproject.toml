@@ -11,6 +11,8 @@ dependencies = ["PyYAML>=6.0,<7", "jsonschema>=4.23,<5"]
 
 [project.scripts]
 edge-model-download = "edge_model_lab.common.download:main"
+edge-model-rockchip-bootstrap = "edge_model_lab.rockchip.bootstrap:entrypoint"
+edge-model-rockchip-package = "edge_model_lab.rockchip.package:entrypoint"
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
@@ -21,4 +23,3 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-

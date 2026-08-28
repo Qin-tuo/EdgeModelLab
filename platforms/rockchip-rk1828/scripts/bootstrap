@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+set -eu
+exec "${EDGE_MODEL_LAB_PYTHON:-python3}" -m edge_model_lab.rockchip.bootstrap "$@"
