@@ -1,3 +1,41 @@
 #!/usr/bin/env sh
 set -eu
-exec "${EDGE_MODEL_LAB_PYTHON:-python3}" -m edge_model_lab.common.export_onnx "$@"
+
+if [ "$#" -ne 1 ]; then
+    echo "usage: $0 Qwen2.5-0.5B-Instruct|Qwen3-4B" >&2
+    exit 2
+fi
+
+MODEL=$1
+ROOT=${EDGE_MODEL_LAB_ROOT:-/home/barry/EdgeModelLab}
+VENDOR=$ROOT/platforms/rockchip-rk1828/vendor/rknn3-model-zoo
+
+case "$MODEL" in
+    Qwen2.5-0.5B-Instruct)
+        EXPORTER=examples/Qwen2_5/python/export_llm.py
+        ;;
+    Qwen3-4B)
+        EXPORTER=examples/Qwen3/python/export_llm.py
+        ;;
+    *)
+        echo "unsupported model: $MODEL" >&2
+        exit 2
+        ;;
+esac
+
+INPUT=$ROOT/models/Qwen/$MODEL/original
+OUTPUT=$ROOT/models/Qwen/$MODEL/onnx
+mkdir -p "$OUTPUT"
+
+docker run --rm --gpus all \
+    --user "$(id -u):$(id -g)" \
+    --env HOME=/tmp \
+    --volume "$INPUT:/input:ro" \
+    --volume "$OUTPUT:/output" \
+    --volume "$VENDOR:/vendor:ro" \
+    --volume "$VENDOR/datasets/CMMLU:/vendor/datasets/CMMLU" \
+    --workdir "/vendor/$(dirname "$EXPORTER")" \
+    edge-model-lab/rknn3:1.0.4 \
+    python3.10 "/vendor/$EXPORTER" \
+        --model_path /input \
+        --export_llm_path "/output/$MODEL.onnx"
