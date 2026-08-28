@@ -9,6 +9,9 @@ description = "Central Qwen host-production workspace for edge targets"
 requires-python = ">=3.10,<3.13"
 dependencies = ["PyYAML>=6.0,<7", "jsonschema>=4.23,<5"]
 
+[project.scripts]
+edge-model-download = "edge_model_lab.common.download:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
 
