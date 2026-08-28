@@ -42,8 +42,7 @@ board runtime code, inference application code, or benchmark execution code.
 |           `-- rockchip-rk1828/
 |-- common/
 |   |-- environment.yml
-|   |-- download.py
-|   `-- export_onnx.py
+|   `-- download.py
 |-- platforms/
 |   |-- nvidia-orin/
 |   |   |-- Dockerfile
@@ -70,9 +69,10 @@ unaltered, complete upstream model. `onnx` contains common intermediate
 exports. Each platform directory contains its conversion outputs and complete
 deployable bundle.
 
-`common` owns the one Conda environment definition and the source download and
-common ONNX export tasks. The actual Conda environment is named `qwen-common`
-and remains under `/home/barry/miniconda3/envs/qwen-common`.
+`common` owns the one Conda environment definition and source download task.
+The actual Conda environment is named `qwen-common` and remains under
+`/home/barry/miniconda3/envs/qwen-common`. ONNX export stays in the matching
+platform container because the verified exporters depend on vendor tooling.
 
 `platforms` owns platform-specific Dockerfiles, vendor tooling, conversion,
 quantization, and package assembly. Docker continues to manage image and

@@ -11,7 +11,6 @@ dependencies = ["PyYAML>=6.0,<7", "jsonschema>=4.23,<5"]
 
 [project.scripts]
 edge-model-download = "edge_model_lab.common.download:main"
-edge-model-export-onnx = "edge_model_lab.common.export_onnx:main"
 edge-model-rockchip-bootstrap = "edge_model_lab.rockchip.bootstrap:entrypoint"
 edge-model-rockchip-package = "edge_model_lab.rockchip.package:entrypoint"
 

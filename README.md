@@ -6,10 +6,11 @@ the edge projects on this machine:
 - Qwen2.5-0.5B-Instruct
 - Qwen3-4B
 
-Model files live under `models/Qwen`. Common download and ONNX entry points
-live under `common` and `edge_model_lab.common`. Verified vendor-specific host
-tasks live under `platforms` and `edge_model_lab.rockchip`. Application
-projects consume the resulting deployment bundles and do not produce them.
+Model files live under `models/Qwen`. The common model-download environment
+lives under `common` and `edge_model_lab.common`. Export and quantization tasks
+live under `platforms`; verified Rockchip producer logic also lives under
+`edge_model_lab.rockchip`. Application projects consume the resulting
+deployment bundles and do not produce them.
 
 Large models, generated artifacts, vendor repositories, local environments,
 and temporary files are intentionally excluded from Git.
