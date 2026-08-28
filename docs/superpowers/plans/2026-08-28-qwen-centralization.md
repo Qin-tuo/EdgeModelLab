@@ -1,5 +1,29 @@
 # Qwen Centralization Implementation Plan
 
+## Execution Record
+
+Completed locally on 2026-08-28.
+
+- EdgeModelLab main tests: 168 passed.
+- RK_LLM main non-hardware tests: 178 passed, 1 hardware test deselected.
+- Qwen2.5-0.5B-Instruct: 10 source and 6 generated files rehashed successfully.
+- Qwen3-4B: 12 source and 6 generated files rehashed successfully.
+- Qwen3 RK1828 package `4938370a62fd618b`: package validation passed.
+- `qwen-common`: created without PyTorch/CUDA and installed from the final
+  `/home/barry/EdgeModelLab` path.
+- `edge-model-lab/rknn3:1.0.4`: built and verified by importing `RKNN` with
+  Python 3.10 and PyTorch 2.7.0+cu126.
+- Existing project/workspace paths now resolve through compatibility symlinks.
+- Verified duplicate models, old producer environments, build caches, and the
+  obsolete `/home/barry/Model` directory were removed.
+- Both feature branches were merged locally; nothing was pushed.
+
+Implementation simplification: the planned common ONNX Python dispatcher was
+removed because it duplicated platform behavior and could bypass SDK
+isolation. `platforms/rockchip-rk1828/scripts/export-qwen` is the single ONNX
+export entry and runs the verified Docker image with scoped mounts. No
+unverified Orin NX or Horizon S100 toolchain was fabricated.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Move the existing Qwen2.5-0.5B-Instruct and Qwen3-4B source models and Rockchip artifacts into `/home/barry/EdgeModelLab`, centralize the working Rockchip host-production code there, and reduce RK_LLM to a deployment/runtime consumer.
