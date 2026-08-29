@@ -1,82 +1,53 @@
 # EdgeModelLab
 
-EdgeModelLab is the host workspace for the two Qwen models currently used by
-the edge projects on this machine:
+EdgeModelLab 是边缘平台的模型资产与生产环境工作区。每个上游模型只保存一份；Rockchip、NVIDIA Jetson 和 Horizon 分别管理自己的量化、导出、编译流程及产物目录。
 
-- Qwen2.5-0.5B-Instruct
-- Qwen3-4B
+根 README 只定义公共契约并提供平台索引。镜像准备、容器启动、环境自检和平台工具链说明见对应平台 README。
 
-Model files live under `models/Qwen`. `common/environment.yml` provides the
-official Hugging Face and ModelScope command-line tools. Download directories
-are created manually; EdgeModelLab does not wrap or restrict model downloads.
-Export and quantization tasks live under `platforms`; verified Rockchip
-producer logic also lives under `edge_model_lab.rockchip`. Application projects
-consume the resulting deployment bundles and do not produce them.
+## 平台状态
 
-Large models, generated artifacts, vendor repositories, local environments,
-and temporary files are intentionally excluded from Git.
+| 平台 | 当前状态 |
+| --- | --- |
+| [Rockchip RK3588/RK1828](platforms/rockchip-rk3588-rk1828/README.md) | RKNN3 1.0.4 镜像环境已验证；具体模型链路单独验证。 |
+| [NVIDIA Jetson Orin NX 16GB](platforms/jetson-orin-nx-16/README.md) | x86 NGC 基础镜像已验证；Edge-LLM 和 Orin engine 尚未验证。 |
+| [Horizon S100](platforms/horizon-s100/README.md) | OE 3.7.0 官方环境可启动；当前 Qwen 模型没有官方 S100 支持声明。 |
 
-## Layout
+## 目录与资产契约
 
 ```text
-models/Qwen/<model>/original          complete downloaded model
-models/Qwen/<model>/onnx              ONNX and exporter metadata
-models/Qwen/<model>/rockchip-rk1828   RKNN3 outputs and deployment bundle
-models/Qwen/<model>/nvidia-orin       future verified Orin outputs
-models/Qwen/<model>/horizon-s100      future verified S100 outputs
-platforms/rockchip-rk3588-rk1828      current host-production toolchain
+models/Qwen/<model>/
+|-- original/
+|-- rockchip-rk3588-rk1828/<variant>/
+|-- jetson-orin-nx-16/<variant>/
+`-- horizon-s100/<variant>/
 ```
 
-No Qwen conversion pipeline has yet been verified for Orin NX or Horizon S100,
-so this repository does not provide speculative Dockerfiles or commands for
-those platforms.
+- `models/Qwen/<model>/original/` 是唯一共享且不可修改的上游输入。
+- `rockchip-rk3588-rk1828/<variant>/`、`jetson-orin-nx-16/<variant>/` 和 `horizon-s100/<variant>/` 是对应平台独立拥有的产物目录；量化、导出和编译结果只能写入本平台目录。
+- ONNX 和 engine 均属于生成它们的平台及工具链，不跨平台复用。
+- 模型、vendor、runtime、Docker 层和 `tmp` 不提交 Git。
 
-## Common environment
+## 操作边界
 
-```sh
-conda env create -f common/environment.yml
-conda activate qwen-common
-```
+宿主机可以安装 Docker、创建目录、下载模型和 clone 官方源码。平台 SDK、平台 Python 依赖、量化、导出和编译只能在对应容器内执行，不能安装或运行在宿主机公共环境中。
 
-Create the destination yourself, enter it, and call an official downloader.
-For Hugging Face:
+宿主机下载模型时，先创建唯一的 `original/` 目录，再使用官方工具写入该目录。例如：
 
 ```sh
-mkdir -p /home/barry/EdgeModelLab/models/Qwen/Qwen3-4B/original
-cd /home/barry/EdgeModelLab/models/Qwen/Qwen3-4B/original
+export EDGE_MODEL_LAB_ROOT=/path/to/EdgeModelLab
+mkdir -p "$EDGE_MODEL_LAB_ROOT/models/Qwen/Qwen3-4B/original"
+cd "$EDGE_MODEL_LAB_ROOT/models/Qwen/Qwen3-4B/original"
 hf download Qwen/Qwen3-4B --local-dir .
 ```
 
-For ModelScope:
+也可以在同一目录使用 ModelScope 官方下载工具：
 
 ```sh
-mkdir -p /home/barry/EdgeModelLab/models/Qwen/Qwen3-4B/original
-cd /home/barry/EdgeModelLab/models/Qwen/Qwen3-4B/original
-modelscope download Qwen/Qwen3-4B --local-dir .
+modelscope download Qwen/Qwen3-4B --local_dir .
 ```
 
-Replace the owner/model identifier and directory name with any model you need.
-The official CLI writes into the current directory because `--local-dir .` is
-specified. Platform conversion does not install vendor SDKs into this Conda
-environment.
+按实际模型替换仓库标识和目录名。下载完成后保持 `original/` 只读语义，所有平台产物写入各自的 `<variant>/`。
 
-## Rockchip RK1828
+## 清理原则
 
-Build and verify the isolated Toolkit 1.0.4 environment:
-
-```sh
-docker build -t edge-model-lab/rknn3:1.0.4 \
-  -f platforms/rockchip-rk3588-rk1828/Dockerfile .
-docker run --rm edge-model-lab/rknn3:1.0.4 \
-  python3.10 -c 'from rknn.api import RKNN; print(RKNN)'
-```
-
-Export one of the approved models through the container:
-
-```sh
-platforms/rockchip-rk3588-rk1828/scripts/export-qwen Qwen2.5-0.5B-Instruct
-platforms/rockchip-rk3588-rk1828/scripts/export-qwen Qwen3-4B
-```
-
-The source model mount is read-only. ONNX output and the Model Zoo calibration
-dataset directory are the only writable task mounts.
+清理资源前必须确认具体容器、镜像、构建目录或临时目录，并只删除确认不再需要的对象。禁止使用全局 Docker 清理方式，以免删除其他平台仍在使用的镜像、构建缓存或容器；具体清理步骤见对应平台 README。

@@ -5,5 +5,7 @@ __pycache__/
 .vscode/
 models/
 platforms/*/vendor/
+platforms/jetson-orin-nx-16/TensorRT-Edge-LLM/
+platforms/jetson-orin-nx-16/TensorRT-Edge-LLM.zip
 platforms/*/runtime/
 tmp/
