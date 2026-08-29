@@ -9,7 +9,7 @@
 | 项目 | 固定值 |
 | --- | --- |
 | x86 基础镜像 | `nvcr.io/nvidia/pytorch:25.12-py3` |
-| linux/amd64 manifest digest | `sha256:11e9976339d08669ede155cdbc601b1df5f57772fcee772b23527efc54e05602` |
+| linux/amd64 child manifest digest | `sha256:11e9976339d08669ede155cdbc601b1df5f57772fcee772b23527efc54e05602` |
 | 基础系统 / Python | Ubuntu 24.04 / Python 3.12 |
 | CUDA / PyTorch | CUDA 13.1 / PyTorch 2.10 development build (`2.10.0a0+b4e4ee81d3`) |
 | TensorRT | 10.14.1 |
@@ -60,20 +60,16 @@ mkdir -p "$MODEL_ROOT/original" "$OUTPUT_ROOT" "$TMP_ROOT/home"
 
 ## 获取并自检镜像
 
-按 [NGC User Guide](https://docs.nvidia.com/ngc/latest/ngc-catalog-user-guide.html) 交互登录。用户名必须原样保留；API key 只在密码提示中输入，不放进命令、环境变量或文件：
+按 [NGC User Guide](https://docs.nvidia.com/ngc/latest/ngc-catalog-user-guide.html) 交互登录，用户名必须原样保留。API key 只在密码提示中输入，不写入命令或环境文件。交互输入可避免 shell history 泄露，但 Docker 会使用 credential helper；未配置 helper 时会将凭据以 base64 写入 `$HOME/.docker/config.json`。建议配置 helper，或像下面这样拉取后立即登出：
 
 ```bash
 docker login nvcr.io --username '$oauthtoken'
 docker pull --platform linux/amd64 nvcr.io/nvidia/pytorch:25.12-py3
+test "$(docker image inspect --platform linux/amd64 --format '{{.Descriptor.digest}}' nvcr.io/nvidia/pytorch:25.12-py3)" = sha256:11e9976339d08669ede155cdbc601b1df5f57772fcee772b23527efc54e05602
+docker logout nvcr.io
 ```
 
-拉取输出中的 amd64 digest 应与上表一致；再确认本地镜像架构：
-
-```bash
-docker image inspect --format \
-  'id={{.Id}} os={{.Os}} arch={{.Architecture}}' \
-  nvcr.io/nvidia/pytorch:25.12-py3
-```
+tag pull 显示的是顶层多架构 index digest，与上表的 amd64 child manifest digest 不同；不要直接比较 pull 输出。上述断言独立验证本地 amd64 descriptor。
 
 一次性容器只检查基础镜像中的 Python、PyTorch、CUDA 与 GPU，不表示 Edge-LLM 已安装：
 
@@ -115,12 +111,18 @@ tensorrt-edgellm-quantize --help
 python -m pip freeze > /workspace/output/environment.freeze.txt
 ```
 
-该安装会按 v0.10.0 解析出可能不同于基础镜像的 Torch、Transformers 等版本，所以保留 `environment.freeze.txt`。两个 help 成功只证明入口可用，不证明模型流程或 Orin runtime 可用。
+v0.10.0 固定 `torch==2.13.0` 和 `transformers==5.14.1`；激活 venv 后使用的不是基础镜像 PyTorch 2.10。安装会额外下载依赖并占用 `tmp` 磁盘，但不会修改基础镜像的系统包，所以保留 `environment.freeze.txt`。两个 help 成功只证明入口可用，不证明模型流程或 Orin runtime 可用。
 
 退出后可重新进入；venv 位于 `tmp` bind mount 中，会独立于容器持久化，但重入后需再次激活：
 
 ```bash
 docker start -ai edge-model-lab-jetson-export
+```
+
+新 shell 启动后，在容器内执行：
+
+```bash
+source /workspace/tmp/venv/bin/activate
 ```
 
 ## 离线迁移与清理
@@ -130,7 +132,8 @@ docker start -ai edge-model-lab-jetson-export
 ```bash
 TRANSFER_DIR="${TRANSFER_DIR:-$PWD/jetson-export-transfer}"
 mkdir -p "$TRANSFER_DIR"
-docker save -o "$TRANSFER_DIR/nvidia-pytorch-25.12-py3-amd64.tar" \
+docker image save --platform linux/amd64 \
+  -o "$TRANSFER_DIR/nvidia-pytorch-25.12-py3-amd64.tar" \
   nvcr.io/nvidia/pytorch:25.12-py3
 cd "$TRANSFER_DIR"
 sha256sum nvidia-pytorch-25.12-py3-amd64.tar \
@@ -144,7 +147,7 @@ TRANSFER_DIR="${TRANSFER_DIR:-$PWD/jetson-export-transfer}"
 cd "$TRANSFER_DIR"
 sha256sum -c nvidia-pytorch-25.12-py3-amd64.tar.sha256
 docker load -i nvidia-pytorch-25.12-py3-amd64.tar
-docker image inspect nvcr.io/nvidia/pytorch:25.12-py3
+test "$(docker image inspect --platform linux/amd64 --format '{{.Descriptor.digest}}' nvcr.io/nvidia/pytorch:25.12-py3)" = sha256:11e9976339d08669ede155cdbc601b1df5f57772fcee772b23527efc54e05602
 ```
 
 该镜像归档不包含 Edge-LLM checkout、模型、`output`、`tmp` 中的 venv，也不包含命名容器的可写层；这些 bind mount 内容必须分别迁移。amd64 镜像不能作为 Orin 运行镜像。
@@ -157,4 +160,4 @@ docker rm edge-model-lab-jetson-export
 docker image rm nvcr.io/nvidia/pytorch:25.12-py3
 ```
 
-官方资料：[TensorRT Edge-LLM v0.10.0](https://github.com/NVIDIA/TensorRT-Edge-LLM/tree/v0.10.0)、[安装说明](https://github.com/NVIDIA/TensorRT-Edge-LLM/blob/v0.10.0/docs/source/user_guide/getting_started/installation.md)、[支持矩阵](https://github.com/NVIDIA/TensorRT-Edge-LLM/blob/v0.10.0/docs/source/user_guide/getting_started/support-matrix.md)。源码遵循仓库随附的 [Apache-2.0 LICENSE](https://github.com/NVIDIA/TensorRT-Edge-LLM/blob/v0.10.0/LICENSE)，镜像内第三方组件遵循各自许可证。
+官方资料：[TensorRT Edge-LLM v0.10.0](https://github.com/NVIDIA/TensorRT-Edge-LLM/tree/v0.10.0)、[安装说明](https://github.com/NVIDIA/TensorRT-Edge-LLM/blob/v0.10.0/docs/source/user_guide/getting_started/installation.md)、[支持矩阵](https://github.com/NVIDIA/TensorRT-Edge-LLM/blob/v0.10.0/docs/source/user_guide/getting_started/support-matrix.md)。Edge-LLM 主仓库遵循 [Apache-2.0 LICENSE](https://github.com/NVIDIA/TensorRT-Edge-LLM/blob/v0.10.0/LICENSE)，submodule 各自遵循其随附许可证；NGC 镜像遵循 [NVIDIA governing terms](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/) 及镜像随附条款。
