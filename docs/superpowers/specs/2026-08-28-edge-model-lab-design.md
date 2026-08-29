@@ -2,11 +2,11 @@
 
 ## Goal
 
-Create one host-side workspace at `/home/barry/EdgeModelLab` for the complete
-Qwen model lifecycle: source download, common ONNX export, platform conversion,
-quantization, and deployment-package creation. Existing application projects
-consume the centralized files but no longer own host-side model-production
-tasks or duplicate model data.
+Create one host-side workspace at `/home/barry/EdgeModelLab` for the Qwen model
+assets and platform-specific export/quantization recipes. Existing application
+projects consume the centralized files but no longer own host-side
+model-production tasks or duplicate model data. Generic download and producer
+APIs are intentionally outside this repository.
 
 ## Scope
 
@@ -14,9 +14,10 @@ The initial migration covers:
 
 - `Qwen2.5-0.5B-Instruct`
 - `Qwen3-4B`
-- NVIDIA Jetson Orin NX host-side model production
-- Horizon S100 host-side model production
-- Rockchip RK1828 host-side model production
+- Rockchip RK3588 NPU and RK3588/RK1828 host-side model production
+
+Jetson Orin NX and Horizon S100 directories are reserved for future verified
+recipes; no pipeline for those targets is claimed by this migration.
 
 Future source downloads are not restricted to these two models. The user
 creates the desired directory and invokes the official Hugging Face or
@@ -34,43 +35,52 @@ board runtime code, inference application code, or benchmark execution code.
 |   `-- Qwen/
 |       |-- Qwen2.5-0.5B-Instruct/
 |       |   |-- original/
-|       |   |-- onnx/
-|       |   |-- nvidia-orin/
+|       |   |-- rockchip-rk3588/
+|       |   |-- jetson-orin-nx-16/
 |       |   |-- horizon-s100/
-|       |   `-- rockchip-rk1828/
+|       |   `-- rockchip-rk3588-rk1828/
 |       `-- Qwen3-4B/
 |           |-- original/
-|           |-- onnx/
-|           |-- nvidia-orin/
+|           |-- rockchip-rk3588/
+|           |-- jetson-orin-nx-16/
 |           |-- horizon-s100/
-|           `-- rockchip-rk1828/
+|           `-- rockchip-rk3588-rk1828/
 |-- common/
 |   `-- environment.yml
 |-- platforms/
-|   |-- nvidia-orin/
+|   |-- jetson-orin-nx-16/
 |   |   |-- Dockerfile
 |   |   `-- scripts/
 |   |-- horizon-s100/
 |   |   |-- Dockerfile
 |   |   `-- scripts/
+|   |-- rockchip-rk3588/
+|   |   `-- vendor/
 |   `-- rockchip-rk3588-rk1828/
 |       |-- Dockerfile
-|       |-- scripts/
+|       |-- .dockerignore
+|       |-- config/
+|       |-- schema/
+|       |-- runtime/
 |       `-- vendor/
 `-- tmp/
 ```
 
 No empty version hierarchy is created in advance. A readable variant directory
 is added only when real outputs exist, for example
-`rockchip-rk1828/rknn3-1.0.4-w4a16-ctx4096/`. Directory names do not contain
-hashes.
+`rockchip-rk3588/rkllm-1.3.0-w8a8/` or
+`rockchip-rk3588-rk1828/rknn3-1.0.4-w4a16-ctx4096/`. Directory names do not
+contain hashes.
 
 ## Ownership Boundaries
 
 `models/Qwen` is the only persistent model-data store. `original` contains an
-unaltered, complete upstream model. `onnx` contains common intermediate
-exports. Each platform directory contains its conversion outputs and complete
-deployable bundle.
+unaltered upstream snapshot. Each platform variant owns its conversion outputs
+and complete deployable bundle; there is no shared model-level ONNX directory.
+
+The pure RK3588 path uses `rknn-toolkit2` for ordinary networks and visual
+subgraphs, and `rknn-llm` for LLMs. The RK3588/RK1828 path uses the separate
+RKNN3 toolchain. Their model formats and runtimes are not interchangeable.
 
 `common` owns only the Conda environment definition that installs the official
 Hugging Face and ModelScope command-line tools. EdgeModelLab does not provide a
@@ -80,31 +90,38 @@ ONNX export stays in the matching platform container because the verified
 exporters depend on vendor tooling.
 
 `platforms` owns platform-specific Dockerfiles, vendor tooling, conversion,
-quantization, and package assembly. Docker continues to manage image and
-container data under `/var/lib/docker`; those files are never manipulated
-directly.
+and quantization recipes. Every platform conversion command runs in its
+declared container; no vendor SDK is installed into the common environment.
+Deployment consumers own runtime/package activation. Docker continues to manage
+image and container data under `/var/lib/docker`; those files are never
+manipulated directly.
+
+Each platform image is built with that platform directory as its Docker context.
+The platform `.dockerignore` admits only the files needed by the image build;
+model trees and unrelated vendor data never enter the build context.
 
 `tmp` contains disposable conversion staging data and intermediate build files.
-Manual source downloads write directly to the directory selected by the user.
+Manual source downloads write directly to the directory selected by the user;
+the platform recipes stage generated output before publishing it.
 
 ## Container Access
 
-Platform containers receive only three mounts:
+An interactive platform container receives the selected model directory as a
+writable mount and uses the vendor/toolchain files baked into the image. A
+temporary host directory may be mounted separately for disposable build data.
 
-- the selected `original` or `onnx` input directory as read-only;
-- the selected platform output directory as writable;
-- `/home/barry/EdgeModelLab/tmp` as writable scratch space.
-
-The complete model tree is never mounted writable. NVIDIA, Horizon, and
-Rockchip dependencies remain isolated from each other and from the common Conda
-environment.
+The complete model tree is not mounted as a single writable volume for a
+production task. Vendor checkouts are build inputs, not runtime mounts. NVIDIA,
+Horizon, and Rockchip dependencies remain isolated from each other and from the
+common Conda environment.
 
 ## Existing Project Changes
 
 `/home/barry/AI_Infra/RK_LLM` stops owning host bootstrap, external-model
 import, conversion, quantization, and deployment-package production. The
-corresponding host modules, launchers, configurations, tests, and documentation
-move to EdgeModelLab or are removed after their replacement is verified.
+corresponding host modules, launchers, configurations, and tests are removed;
+only the verified platform recipes and input declarations remain in
+EdgeModelLab.
 
 RK_LLM retains board deployment paths, deployment-package validation, RKNN3
 runtime probing, inference, benchmark, and application behavior. These are
@@ -175,5 +192,5 @@ Completion requires all of the following:
 The first implementation does not add a registry service, database, web UI,
 general model-management framework, content-addressed store, custom cache
 manager, or a single CLI that abstracts every vendor command. It centralizes
-the existing Qwen data and host tasks with the smallest platform-specific
-structure needed for current use.
+the existing Qwen data and platform recipes with the smallest structure needed
+for current use.

@@ -54,7 +54,6 @@ The intended layout is:
 ```text
 models/Qwen/<model>/
 |-- original/                         immutable upstream snapshot
-|-- onnx/                             only proven generic ONNX, if any
 |-- rockchip-rk3588-rk1828/<variant>/ RKNN3 graph and deployable artifacts
 `-- jetson-orin-nx-16/<variant>/
     |-- quantized/                    Edge-LLM quantized checkpoint
@@ -63,9 +62,9 @@ models/Qwen/<model>/
     `-- manifest.json                 provenance and compatibility record
 ```
 
-An Edge-LLM ONNX file belongs under the Jetson variant unless it has been
-explicitly verified as a generic ONNX artifact. The model's `original/`
-directory is the only shared input between Rockchip and Jetson producers.
+Every ONNX file belongs under a platform and toolchain variant. The model's
+`original/` directory is the only shared input between Rockchip and Jetson
+producers; there is no shared model-level ONNX directory.
 
 The manifest for a promoted Jetson variant records at least the source model
 repository and revision, exporter and Edge-LLM commits, NVIDIA container tag,
