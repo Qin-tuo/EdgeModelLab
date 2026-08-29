@@ -8,7 +8,7 @@ EdgeModelLab 是边缘平台的模型资产与生产环境工作区。每个上�
 
 | 平台 | 当前状态 |
 | --- | --- |
-| [Rockchip RK3588/RK1828](platforms/rockchip-rk3588-rk1828/README.md) | RKNN3 1.0.4 镜像环境已验证；具体模型链路单独验证。 |
+| [Rockchip RK3588/RK1828](platforms/rockchip-rk3588-rk1828/README.md) | RKNN3 1.0.4 镜像环境已验证；具体模型的量化、导出和转换链路尚未验证，需另行验证。 |
 | [NVIDIA Jetson Orin NX 16GB](platforms/jetson-orin-nx-16/README.md) | x86 NGC 基础镜像已验证；Edge-LLM 和 Orin engine 尚未验证。 |
 | [Horizon S100](platforms/horizon-s100/README.md) | OE 3.7.0 官方环境可启动；当前 Qwen 模型没有官方 S100 支持声明。 |
 
@@ -31,10 +31,18 @@ models/Qwen/<model>/
 
 宿主机可以安装 Docker、创建目录、下载模型和 clone 官方源码。平台 SDK、平台 Python 依赖、量化、导出和编译只能在对应容器内执行，不能安装或运行在宿主机公共环境中。
 
+公共 `qwen-common` 环境只包含官方下载和通用检查工具，不包含任何平台 SDK。在仓库根目录执行：
+
+```bash
+export EDGE_MODEL_LAB_ROOT="${EDGE_MODEL_LAB_ROOT:-$PWD}"
+test -f "$EDGE_MODEL_LAB_ROOT/README.md"
+conda env create -f "$EDGE_MODEL_LAB_ROOT/common/environment.yml"
+conda activate qwen-common
+```
+
 宿主机下载模型时，先创建唯一的 `original/` 目录，再使用官方工具写入该目录。例如：
 
 ```sh
-export EDGE_MODEL_LAB_ROOT=/path/to/EdgeModelLab
 mkdir -p "$EDGE_MODEL_LAB_ROOT/models/Qwen/Qwen3-4B/original"
 cd "$EDGE_MODEL_LAB_ROOT/models/Qwen/Qwen3-4B/original"
 hf download Qwen/Qwen3-4B --local-dir .
@@ -43,7 +51,7 @@ hf download Qwen/Qwen3-4B --local-dir .
 也可以在同一目录使用 ModelScope 官方下载工具：
 
 ```sh
-modelscope download Qwen/Qwen3-4B --local_dir .
+modelscope download --model Qwen/Qwen3-4B --local_dir .
 ```
 
 按实际模型替换仓库标识和目录名。下载完成后保持 `original/` 只读语义，所有平台产物写入各自的 `<variant>/`。
