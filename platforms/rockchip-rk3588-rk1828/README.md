@@ -178,7 +178,9 @@ docker load -i edge-model-lab-rknn3-1.0.4.tar
 docker image inspect edge-model-lab/rknn3:1.0.4
 ```
 
-镜像不包含 bind mount。两个固定 checkout、受控 runtime、模型和输出需按许可证单独迁移；不要打包认证信息。
+镜像归档已包含安装后的 Toolkit wheel，以及构建时复制入镜像的 Model Zoo 和 runtime。它不包含三个 bind mount、完整 Toolkit Git checkout 及其 `.git` 元数据，也不包含命名容器的可写层。
+
+正常 `docker load` 后启动只需另行准备所需 bind mount 内容，不必再次提供两个源码 checkout 或原始 runtime。只有离线重建镜像或供应链审计时，才按许可证另迁两个固定 checkout 和原始受控 runtime；不要打包认证信息。
 
 只清理本指南指定的容器和 tag：
 
