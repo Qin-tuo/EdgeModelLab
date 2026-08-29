@@ -21,12 +21,13 @@ RTX 5070 8GB 只证明当前容器环境可访问 GPU。官方要求量化显存
 
 ## 宿主机准备
 
-宿主机要求 Ubuntu 22.04 或 24.04 x86-64、Git、Docker Engine、NVIDIA 驱动和 NVIDIA Container Toolkit。参考 [Docker Engine Ubuntu 安装](https://docs.docker.com/engine/install/ubuntu/) 与 [NVIDIA Container Toolkit 安装](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)。Docker 组权限近似 root，只授予可信用户。
+宿主机要求 Ubuntu 22.04 或 24.04 x86-64、Git、Docker Engine（Server API `>= 1.49`，用于 `image inspect --platform`）、NVIDIA 驱动和 NVIDIA Container Toolkit。参考 [Docker Engine Ubuntu 安装](https://docs.docker.com/engine/install/ubuntu/) 与 [NVIDIA Container Toolkit 安装](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)；若 Server API 低于 1.49，先按 Docker 官方文档升级。Docker 组权限近似 root，只授予可信用户。
 
 宿主机不安装 Edge-LLM、平台 Python 依赖或 TensorRT SDK。安装 Docker 与 GPU runtime 后仅验证：
 
 ```bash
 docker version
+docker version --format 'Server API={{.Server.APIVersion}}'
 nvidia-smi
 docker run --rm --gpus all ubuntu:22.04 nvidia-smi
 ```
