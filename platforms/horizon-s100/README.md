@@ -96,12 +96,13 @@ docker run --name edge-model-lab-horizon-s100 \
 
 命令不使用 `--rm`。官方镜像默认以 root 运行；不要擅自增加 `--user`，否则可能破坏镜像的 `PATH`、`LD_LIBRARY_PATH` 或工具权限。`--network host` 权限较宽，仅在可信宿主机使用。`OE_FTP_SERVER` 和 `OE_FTP_USER_INFO` 只在宿主已设置时透传，不要把值提交到仓库。
 
-root 可能在挂载目录产生文件。退出前，仅对自己拥有且确认可改属主的这些挂载执行：
+root 可能在挂载目录产生文件。退出前，只递归修正本项目专属的输出和临时目录：
 
 ```bash
-chown -R "$HOST_UID:$HOST_GID" \
-  /data /open_explorer /workspace/output /workspace/tmp
+chown -R "${HOST_UID}:${HOST_GID}" /workspace/output /workspace/tmp
 ```
+
+若工具在 `/open_explorer` 或 `/data` 产生 root-owned 内容，只对确认的具体生成子目录或文件修正属主，绝不递归修改整个 vendor 或 data mount。
 
 ## 容器自检与重新进入
 
