@@ -3,7 +3,21 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 .vscode/
-models/
-platforms/*/vendor/
+# Ignore downloaded model files while keeping the directory layout.
+models/**
+!models/**/
+!models/**/.gitkeep
+!models/README.md
+platforms/*/vendor/*
+!platforms/*/vendor/
+!platforms/jetson-orin-nx-16/vendor/TensorRT-Edge-LLM/
+!platforms/rockchip-rk3588-rk1828/vendor/rknn3-model-zoo/
+!platforms/rockchip-rk3588-rk1828/vendor/rknn3-toolkit/
+platforms/jetson-orin-nx-16/TensorRT-Edge-LLM/
 platforms/*/runtime/
 tmp/
+docs/superpowers
+build/
+dist/
+.coverage
+*.py[cod]
