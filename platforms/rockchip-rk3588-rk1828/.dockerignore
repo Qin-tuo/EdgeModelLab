@@ -1,0 +1,14 @@
+*
+!vendor/
+!vendor/rknn3-toolkit/
+!vendor/rknn3-toolkit/rknn3-toolkit/
+!vendor/rknn3-toolkit/rknn3-toolkit/packages/
+!vendor/rknn3-toolkit/rknn3-toolkit/packages/rknn3_toolkit-1.0.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+!vendor/rknn3-model-zoo/
+!vendor/rknn3-model-zoo/**
+!runtime/
+!runtime/**
+vendor/rknn3-model-zoo/.git
+vendor/rknn3-model-zoo/build
+vendor/rknn3-model-zoo/install
+vendor/rknn3-model-zoo/**/__pycache__

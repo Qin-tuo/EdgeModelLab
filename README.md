@@ -1,33 +1,46 @@
 # EdgeModelLab
 
-EdgeModelLab 是边缘平台的模型资产与生产环境工作区。每个上游模型只保存一份；Rockchip、NVIDIA Jetson 和 Horizon 分别管理自己的量化、导出、编译流程及产物目录。
+> 面向真实硬件的边缘模型生产工作区。
 
-根 README 只定义公共契约并提供平台索引。镜像准备、容器启动、环境自检和平台工具链说明见对应平台 README。
+EdgeModelLab 负责把上游模型快照转换成可追溯、可复现、可部署的边缘推理产物。模型源文件、平台工具链和生成结果各自隔离，避免同一份模型在不同硬件流程中失去边界。
 
-## 平台状态
+## 当前平台
 
-| 平台 | 当前状态 |
-| --- | --- |
-| [Rockchip RK3588/RK1828](platforms/rockchip-rk3588-rk1828/README.md) | RKNN3 1.0.4 镜像环境已验证；具体模型的量化、导出和转换链路尚未验证，需另行验证。 |
-| [NVIDIA Jetson Orin NX 16GB](platforms/jetson-orin-nx-16/README.md) | x86 NGC 基础镜像已验证；Edge-LLM 和 Orin engine 尚未验证。 |
-| [Horizon S100](platforms/horizon-s100/README.md) | OE 3.7.0 官方环境可启动；当前 Qwen 模型没有官方 S100 支持声明。 |
+| 平台 | 产物 | 状态 |
+| --- | --- | --- |
+| [Rockchip RK3588（纯 NPU）](platforms/rockchip-rk3588/README.md) | RKNN / RKLLM 模型与部署包 | Toolkit2 2.3.2、RKLLM 1.3.0 已固定 |
+| [Rockchip RK3588 + RK1828](platforms/rockchip-rk3588-rk1828/README.md) | RKNN3 模型与部署包 | RKNN3 1.0.4 镜像环境已验证，模型链路未验证 |
+| [NVIDIA Jetson Orin NX 16GB](platforms/jetson-orin-nx-16/README.md) | TensorRT Edge-LLM ONNX / engine | x86 NGC 基础镜像已验证，Orin 链路未验证 |
+| [Horizon S100](platforms/horizon-s100/README.md) | 平台专用转换产物 | OE 3.7.0 环境可启动，当前 Qwen 无官方 S100 支持声明 |
 
-## 目录与资产契约
+## 核心约定
+
+- `models/Qwen/<model>/original/` 是只读的上游模型快照，所有平台共享同一输入。
+- ONNX、量化权重、engine 和部署包必须放在对应的平台 variant 下，不能跨平台复用。
+- 模型权重、生成产物、vendor checkout 内容、缓存和临时文件默认不进入 Git；
+  第三方工具只通过 submodule 指针记录。
+- 正式产物必须附带模型 revision、工具链版本、构建参数和校验和。
+
+## 目录结构
 
 ```text
 models/Qwen/<model>/
-|-- original/
-|-- rockchip-rk3588-rk1828/<variant>/
-|-- jetson-orin-nx-16/<variant>/
-`-- horizon-s100/<variant>/
+|-- original/                         上游模型快照
+|-- rockchip-rk3588-rk1828/<variant>/ RKNN3 产物
+|-- rockchip-rk3588/<variant>/        RKNN / RKLLM 产物
+|-- jetson-orin-nx-16/<variant>/      TensorRT Edge-LLM 产物
+`-- horizon-s100/<variant>/           Horizon 产物
+
+platforms/
+|-- rockchip-rk3588-rk1828/           Rockchip 生产配方
+|-- rockchip-rk3588/                  纯 RK3588 NPU 生产配方
+|-- jetson-orin-nx-16/                Jetson 生产边界
+`-- horizon-s100/                     Horizon 生产边界
 ```
 
-- `models/Qwen/<model>/original/` 是唯一共享且不可修改的上游输入。
-- `rockchip-rk3588-rk1828/<variant>/`、`jetson-orin-nx-16/<variant>/` 和 `horizon-s100/<variant>/` 是对应平台独立拥有的产物目录；量化、导出和编译结果只能写入本平台目录。
-- ONNX 和 engine 均属于生成它们的平台及工具链，不跨平台复用。
-- 模型、vendor、runtime、Docker 层和 `tmp` 不提交 Git。
+## 快速开始
 
-## 操作边界
+创建通用下载环境：
 
 宿主机可以安装 Docker、创建目录、下载模型和 clone 官方源码。平台 SDK、平台 Python 依赖、量化、导出和编译只能在对应容器内执行，不能安装或运行在宿主机公共环境中。
 
@@ -40,22 +53,25 @@ conda env create -f "$EDGE_MODEL_LAB_ROOT/common/environment.yml"
 conda activate qwen-common
 ```
 
-宿主机下载模型时，先创建唯一的 `original/` 目录，再使用官方工具写入该目录。例如：
+使用 ModelScope 下载模型：
 
 ```sh
-mkdir -p "$EDGE_MODEL_LAB_ROOT/models/Qwen/Qwen3-4B/original"
-cd "$EDGE_MODEL_LAB_ROOT/models/Qwen/Qwen3-4B/original"
-hf download Qwen/Qwen3-4B --local-dir .
+ROOT=$(git rev-parse --show-toplevel)
+MODEL=Qwen3.5-4B
+
+modelscope download \
+  --model Qwen/Qwen3.5-4B \
+  --local_dir "$ROOT/models/Qwen/$MODEL/original"
 ```
 
-也可以在同一目录使用 ModelScope 官方下载工具：
+相关入口：
 
-```sh
-modelscope download --model Qwen/Qwen3-4B --local_dir .
-```
+- [通用下载环境](common/environment.yml)
+- [纯 RK3588 工具链说明](platforms/rockchip-rk3588/README.md)
+- [RK3588 + RK1828 工具链说明](platforms/rockchip-rk3588-rk1828/README.md)
+- [Jetson Orin NX 工具链说明](platforms/jetson-orin-nx-16/README.md)
+- [Horizon S100 工具链说明](platforms/horizon-s100/README.md)
 
-按实际模型替换仓库标识和目录名。下载完成后保持 `original/` 只读语义，所有平台产物写入各自的 `<variant>/`。
+## 许可证
 
-## 清理原则
-
-清理资源前必须确认具体容器、镜像、构建目录或临时目录，并只删除确认不再需要的对象。禁止使用全局 Docker 清理方式，以免删除其他平台仍在使用的镜像、构建缓存或容器；具体清理步骤见对应平台 README。
+模型、厂商 SDK 和第三方工具链遵循各自上游许可证。发布派生产物前，请分别检查相关许可和再分发条款。

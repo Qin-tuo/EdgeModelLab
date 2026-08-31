@@ -1,0 +1,15 @@
+[submodule "platforms/jetson-orin-nx-16/vendor/TensorRT-Edge-LLM"]
+	path = platforms/jetson-orin-nx-16/vendor/TensorRT-Edge-LLM
+	url = https://github.com/NVIDIA/TensorRT-Edge-LLM.git
+[submodule "platforms/rockchip-rk3588-rk1828/vendor/rknn3-model-zoo"]
+	path = platforms/rockchip-rk3588-rk1828/vendor/rknn3-model-zoo
+	url = https://github.com/airockchip/rknn3-model-zoo.git
+[submodule "platforms/rockchip-rk3588-rk1828/vendor/rknn3-toolkit"]
+	path = platforms/rockchip-rk3588-rk1828/vendor/rknn3-toolkit
+	url = https://github.com/airockchip/rknn3-toolkit.git
+[submodule "platforms/rockchip-rk3588/vendor/rknn-toolkit2"]
+	path = platforms/rockchip-rk3588/vendor/rknn-toolkit2
+	url = https://github.com/airockchip/rknn-toolkit2.git
+[submodule "platforms/rockchip-rk3588/vendor/rknn-llm"]
+	path = platforms/rockchip-rk3588/vendor/rknn-llm
+	url = https://github.com/airockchip/rknn-llm.git
