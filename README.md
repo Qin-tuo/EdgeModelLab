@@ -8,10 +8,10 @@ EdgeModelLab 负责把上游模型快照转换成可追溯、可复现、可部�
 
 | 平台 | 产物 | 状态 |
 | --- | --- | --- |
-| Rockchip RK3588（纯 NPU） | RKNN / RKLLM 模型与部署包 | Toolkit2 2.3.2、RKLLM 1.3.0 工具链已纳入 |
-| Rockchip RK3588 + RK1828 | RKNN3 模型与部署包 | Toolkit 1.0.4 配方可用 |
-| NVIDIA Jetson Orin NX 16GB | TensorRT Edge-LLM ONNX / engine | 流程预留，待硬件验证 |
-| Horizon S100 | 平台专用转换产物 | 流程预留 |
+| [Rockchip RK3588（纯 NPU）](platforms/rockchip-rk3588/README.md) | RKNN / RKLLM 模型与部署包 | Toolkit2 2.3.2、RKLLM 1.3.0 已固定 |
+| [Rockchip RK3588 + RK1828](platforms/rockchip-rk3588-rk1828/README.md) | RKNN3 模型与部署包 | RKNN3 1.0.4 镜像环境已验证，模型链路未验证 |
+| [NVIDIA Jetson Orin NX 16GB](platforms/jetson-orin-nx-16/README.md) | TensorRT Edge-LLM ONNX / engine | x86 NGC 基础镜像已验证，Orin 链路未验证 |
+| [Horizon S100](platforms/horizon-s100/README.md) | 平台专用转换产物 | OE 3.7.0 环境可启动，当前 Qwen 无官方 S100 支持声明 |
 
 ## 核心约定
 
@@ -53,7 +53,6 @@ conda activate qwen-common
 ROOT=$(git rev-parse --show-toplevel)
 MODEL=Qwen3.5-4B
 
-python -m pip install -U modelscope
 modelscope download \
   --model Qwen/Qwen3.5-4B \
   --local_dir "$ROOT/models/Qwen/$MODEL/original"
@@ -62,28 +61,10 @@ modelscope download \
 相关入口：
 
 - [通用下载环境](common/environment.yml)
-- [RK3588 + RK1828 工具链说明](platforms/rockchip-rk3588-rk1828/README.md)
-- [Rockchip 生产配方](platforms/rockchip-rk3588-rk1828/Dockerfile)
 - [纯 RK3588 工具链说明](platforms/rockchip-rk3588/README.md)
-- [Jetson Edge-LLM 项目](https://github.com/NVIDIA/TensorRT-Edge-LLM)
-- [架构设计与决策记录](docs/superpowers/specs/2026-08-28-jetson-orin-edge-llm-design.md)
-
-## Rockchip 快速入口
-
-构建 RKNN3 Toolkit 1.0.4 生产镜像：
-
-```sh
-ROOT=$(git rev-parse --show-toplevel)
-docker build -t edge-model-lab/rknn3:1.0.4 \
-  -f "$ROOT/platforms/rockchip-rk3588-rk1828/Dockerfile" \
-  "$ROOT/platforms/rockchip-rk3588-rk1828"
-```
-
-模型转换输出写入对应的 `models/Qwen/<model>/rockchip-rk3588-rk1828/<variant>/`，不要修改 `original/`。
-
-纯 RK3588 不使用 RK1828 算力棒。普通网络或多模态视觉子图使用
-`rknn-toolkit2` 生成 `.rknn`，Qwen 等大语言模型使用 `rknn-llm` 生成
-`.rkllm`；输出写入 `models/Qwen/<model>/rockchip-rk3588/<variant>/`。
+- [RK3588 + RK1828 工具链说明](platforms/rockchip-rk3588-rk1828/README.md)
+- [Jetson Orin NX 工具链说明](platforms/jetson-orin-nx-16/README.md)
+- [Horizon S100 工具链说明](platforms/horizon-s100/README.md)
 
 ## 许可证
 

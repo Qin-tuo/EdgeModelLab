@@ -1,129 +1,111 @@
-# Jetson Orin NX 16GB
+# NVIDIA Jetson Orin NX 16GB 容器启动
 
-本目录是 NVIDIA TensorRT Edge-LLM 生产流程的平台边界。它保存平台配方、
-版本约束和验证说明，不复制 NVIDIA Edge-LLM 源码，也不保存模型权重。
+本指南只准备 x86 导出环境并完成 Edge-LLM CLI 自检，不执行模型量化、导出或 engine build。NGC 基础镜像和 GPU 可见性已验证；Edge-LLM 模型链路与 Orin runtime 尚未验证。
 
-## 当前状态
+## 固定版本与前置条件
 
-Jetson Orin NX 平台目前仍是预留平台，尚未在 EdgeModelLab 中完成完整验证。
-在 exporter、目标设备构建、runtime 加载和冒烟推理全部通过前，不要把此目录
-下的产物标记为已验证。
+| 组件 | 固定值 |
+| --- | --- |
+| x86 基础镜像 | `nvcr.io/nvidia/pytorch:25.12-py3` |
+| amd64 manifest | `sha256:11e9976339d08669ede155cdbc601b1df5f57772fcee772b23527efc54e05602` |
+| 镜像环境 | Ubuntu 24.04 / Python 3.12 / CUDA 13.1 / PyTorch 2.10 dev / TensorRT 10.14.1 |
+| Edge-LLM submodule | `bb291453bc10d9bd1142070c605e090d4e483ee2`（`v0.10.0` 后的官方文档更新） |
 
-目标设备是 Jetson Orin NX 16GB（`sm_87`、aarch64）。选择 NVIDIA 容器版本前，
-必须核对目标机的 JetPack/L4T、CUDA、TensorRT 和 Edge-LLM 版本。能在 x86
-主机运行的容器，不代表它就是 Jetson runtime 环境。
+该镜像不是 Orin 运行镜像。Orin engine 必须在目标 Orin 上使用匹配的 JetPack、CUDA 和 TensorRT 构建；Orin 只使用 FP16、INT8、INT4，不支持 FP8/FP4 系列 engine。RTX 5070 8GB 只证明环境可用，不保证 4B 模型量化显存足够。
 
-## 平台职责
+宿主机使用 Ubuntu 22.04/24.04 x86-64、Docker Server API `>=1.49`、NVIDIA 驱动和 NVIDIA Container Toolkit。安装见 [Docker Engine](https://docs.docker.com/engine/install/ubuntu/) 与 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)。宿主机不安装 Edge-LLM 或平台 Python 依赖。
 
-平台生产流程负责：
-
-- 固定 NVIDIA/Edge-LLM 导出和目标设备构建环境；
-- 模型量化和 ONNX 导出命令；
-- Orin NX TensorRT engine 构建命令；
-- provenance、校验和及产物验证；
-- native Edge-LLM runtime 冒烟测试。
-
-平台不负责上游模型下载和应用推理代码。模型下载由 `models/Qwen` 负责，
-应用推理由使用产物的项目负责。
-
-## 两阶段流程
-
-```text
-models/Qwen/<model>/original/              只读上游模型快照
-        |
-        | 导出主机（x86 或受支持的 NVIDIA 设备）
-        v
-models/Qwen/<model>/jetson-orin-nx-16/<variant>/
-        |-- quantized/                    量化 checkpoint
-        `-- onnx/                         Edge-LLM ONNX 图
-        |
-        | 目标 Orin NX（JetPack/TensorRT）
-        v
-        `-- engine/                       设备专用 TensorRT engine
+```bash
+docker version --format 'Server API={{.Server.APIVersion}}'
+nvidia-smi
+docker run --rm --gpus all ubuntu:22.04 nvidia-smi
 ```
 
-ONNX 目录属于当前平台和工具链变体，不是公共模型级中间产物。TensorRT
-engine 必须在实际运行它的 Orin NX 上构建，不能把 x86 GPU 或其他 Jetson
-生成的 engine 直接复制过来。
+## 准备源码与镜像
 
-## 本地目录约定
+```bash
+export EDGE_MODEL_LAB_ROOT="${EDGE_MODEL_LAB_ROOT:-$PWD}"
+test -f "$EDGE_MODEL_LAB_ROOT/README.md"
+export JETSON_ROOT="$EDGE_MODEL_LAB_ROOT/platforms/jetson-orin-nx-16"
 
-```text
-platforms/jetson-orin-nx-16/
-|-- README.md
-|-- Dockerfile.export       # 环境验证后再添加
-|-- scripts/                # 导出和目标设备构建入口
-|-- config/                 # 模型和 engine 参数
-|-- schema/                 # manifest/产物约束
-`-- vendor/                 # 第三方依赖的 Git submodule
+git -C "$EDGE_MODEL_LAB_ROOT" submodule update --init --recursive \
+  platforms/jetson-orin-nx-16/vendor/TensorRT-Edge-LLM
+test "$(git -C "$JETSON_ROOT/vendor/TensorRT-Edge-LLM" rev-parse HEAD)" \
+  = bb291453bc10d9bd1142070c605e090d4e483ee2
 ```
 
-TensorRT-Edge-LLM 作为 Git submodule 放在 `vendor/` 下。父仓库只记录
-submodule 的上游地址和 commit，不复制第三方工作树。模型产物放在：
+按 [NGC 文档](https://docs.nvidia.com/ngc/latest/ngc-catalog-user-guide.html) 登录。API key 只在提示中输入；Docker 会写入 credential helper，未配置 helper 时会以 base64 写入 `~/.docker/config.json`，拉取后可立即登出。
 
-```text
-models/Qwen/<model>/jetson-orin-nx-16/<variant>/
-|-- quantized/
-|-- onnx/
-|-- engine/
-`-- manifest.json
+```bash
+docker login nvcr.io --username '$oauthtoken'
+docker pull --platform linux/amd64 nvcr.io/nvidia/pytorch:25.12-py3
+test "$(docker image inspect --platform linux/amd64 --format '{{.Descriptor.digest}}' nvcr.io/nvidia/pytorch:25.12-py3)" \
+  = sha256:11e9976339d08669ede155cdbc601b1df5f57772fcee772b23527efc54e05602
+docker logout nvcr.io
 ```
 
-## 容器挂载约定
+基础镜像自检不代表 Edge-LLM 已安装：
 
-导出开发时使用显式挂载：
+```bash
+docker run --rm --gpus all --platform linux/amd64 \
+  nvcr.io/nvidia/pytorch:25.12-py3 \
+  python3 -c 'import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available())'
+```
 
-```sh
-ROOT=$(git rev-parse --show-toplevel)
+## 启动并自检工具链
+
+`Qwen3.5-4B` 仅作为目录示例，不表示模型链路已验证。
+
+```bash
 MODEL=Qwen3.5-4B
+VARIANT=tensorrt-edgellm-v0.10.0
+MODEL_ROOT="$EDGE_MODEL_LAB_ROOT/models/Qwen/$MODEL"
+OUTPUT_ROOT="$MODEL_ROOT/jetson-orin-nx-16/$VARIANT"
+TMP_ROOT="$EDGE_MODEL_LAB_ROOT/tmp/jetson-orin-nx-16/$MODEL"
+mkdir -p "$MODEL_ROOT/original" "$OUTPUT_ROOT" "$TMP_ROOT/home"
 
-docker run --gpus all -it \
-  --name edgellm-export \
-  --volume "$ROOT/models/Qwen/$MODEL/original:/workspace/model:ro" \
-  --volume "$ROOT/models/Qwen/$MODEL/jetson-orin-nx-16:/workspace/output" \
-  --volume "$ROOT/platforms/jetson-orin-nx-16:/workspace/platform" \
-  --workdir /workspace/platform \
-  nvcr.io/nvidia/pytorch:<verified-tag> \
-  bash
+docker run --name edge-model-lab-jetson-export -it \
+  --platform linux/amd64 --gpus all --shm-size=8g \
+  --ulimit memlock=-1 --ulimit stack=67108864 \
+  --user "$(id -u):$(id -g)" --env HOME=/workspace/tmp/home \
+  --mount type=bind,src="$MODEL_ROOT/original",dst=/workspace/model,readonly \
+  --mount type=bind,src="$OUTPUT_ROOT",dst=/workspace/output \
+  --mount type=bind,src="$TMP_ROOT",dst=/workspace/tmp \
+  --mount type=bind,src="$JETSON_ROOT/vendor/TensorRT-Edge-LLM",dst=/workspace/TensorRT-Edge-LLM \
+  --workdir /workspace/TensorRT-Edge-LLM \
+  nvcr.io/nvidia/pytorch:25.12-py3 bash
 ```
 
-镜像由 Docker 管理，不复制到本目录。量化 checkpoint 和 ONNX 必须写入
-`/workspace/output`，这样才会出现在宿主机的模型变体目录中。`original/`
-必须以只读方式挂载。
+以下命令只在容器内执行。当前 submodule 固定 `torch==2.13.0`、`transformers==5.14.1`；venv 会额外占用磁盘，但不会修改基础镜像系统包。
 
-TensorRT Edge-LLM 应安装在固定的平台环境中，不能安装到
-`common/qwen-common`。导出命令以 [NVIDIA TensorRT-Edge-LLM 仓库](https://github.com/NVIDIA/TensorRT-Edge-LLM)
-及 [Jetson AI Lab 教程](https://github.com/NVIDIA-AI-IOT/jetson-ai-lab/blob/main/src/content/tutorials/model-optimization/tensorrt-edge-llm.mdx)
-为准。
+```bash
+python3 -m venv /workspace/tmp/venv
+source /workspace/tmp/venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e '.[tools]'
+tensorrt-edgellm-export --help
+tensorrt-edgellm-quantize --help
+python -m pip freeze > /workspace/output/environment.freeze.txt
+```
 
-## 版本和 provenance
+退出后使用 `docker start -ai edge-model-lab-jetson-export`，再在容器内执行 `source /workspace/tmp/venv/bin/activate`。
 
-每个正式变体的 manifest 至少记录：
+## 离线迁移与清理
 
-- 上游模型仓库和 revision；
-- Edge-LLM commit；
-- NVIDIA 容器 tag；
-- JetPack/L4T、CUDA、TensorRT 和插件版本；
-- 量化格式和 ONNX opset；
-- 目标架构和 engine 构建参数；
-- 所有发布文件的校验和。
+```bash
+docker image save --platform linux/amd64 -o nvidia-pytorch-25.12-py3-amd64.tar \
+  nvcr.io/nvidia/pytorch:25.12-py3
+sha256sum nvidia-pytorch-25.12-py3-amd64.tar > nvidia-pytorch-25.12-py3-amd64.tar.sha256
+sha256sum -c nvidia-pytorch-25.12-py3-amd64.tar.sha256
+docker load -i nvidia-pytorch-25.12-py3-amd64.tar
+```
 
-容器 tag、Edge-LLM、JetPack、CUDA、TensorRT、量化格式和目标 GPU 是一个
-整体兼容集合，不能只升级其中一个组件。
+归档不包含 submodule、模型、输出、tmp venv 或容器可写层；amd64 镜像不能在 Orin 上作为 runtime 使用。
 
-## 验证门槛
+```bash
+docker stop edge-model-lab-jetson-export 2>/dev/null || true
+docker rm edge-model-lab-jetson-export 2>/dev/null || true
+docker image rm nvcr.io/nvidia/pytorch:25.12-py3
+```
 
-平台从预留变为已验证前，必须完成：
-
-1. 记录模型源快照和 revision；
-2. 量化 checkpoint 和 ONNX 图完整且有校验和；
-3. 对应 Edge-LLM builder 能接受该 ONNX；
-4. engine 在目标 Orin NX 上构建成功；
-5. native runtime 能加载 engine 并通过冒烟推理；
-6. manifest 记录完整兼容集合，且没有破坏 Rockchip 或通用环境边界。
-
-## 安全规则
-
-不要将 Hugging Face、NGC、代理、SSH 或其他凭据写入仓库。模型权重、
-量化文件、ONNX、engine、缓存和临时构建文件均不应提交到 Git。第三方
-工具链通过 submodule 指针管理，具体工作树由 `git submodule update` 获取。
+不要执行全局 Docker 清理。上游资料：[安装说明](https://github.com/NVIDIA/TensorRT-Edge-LLM/blob/main/docs/source/user_guide/getting_started/installation.md)、[支持矩阵](https://github.com/NVIDIA/TensorRT-Edge-LLM/blob/main/docs/source/user_guide/getting_started/support-matrix.md)、[PyTorch 25.12](https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-25-12.html)。Edge-LLM 主仓库为 Apache-2.0，submodule 各自遵循随附许可证，NGC 镜像遵循 NVIDIA 条款。

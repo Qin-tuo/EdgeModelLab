@@ -16,6 +16,7 @@ platforms/*/vendor/*
 !platforms/rockchip-rk3588/vendor/rknn-toolkit2/
 !platforms/rockchip-rk3588/vendor/rknn-llm/
 platforms/jetson-orin-nx-16/TensorRT-Edge-LLM/
+platforms/jetson-orin-nx-16/TensorRT-Edge-LLM.zip
 platforms/*/runtime/
 tmp/
 docs/superpowers
