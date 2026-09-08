@@ -11,6 +11,9 @@
 | 镜像环境 | Ubuntu 24.04 / Python 3.12 / CUDA 13.1 / PyTorch 2.10 dev / TensorRT 10.14.1 |
 | Edge-LLM submodule | `bb291453bc10d9bd1142070c605e090d4e483ee2`（`v0.10.0` 后的官方文档更新） |
 
+TensorRT source submodule 固定为 `v10.14`（`3b4ddc1d45f11167f2ea53dc6046bba8df800e2d`），用于
+源码、头文件和 ONNX parser 参考；它不替代 Orin JetPack 提供的目标 TensorRT runtime。
+
 该镜像不是 Orin 运行镜像。Orin engine 必须在目标 Orin 上使用匹配的 JetPack、CUDA 和 TensorRT 构建；Orin 只使用 FP16、INT8、INT4，不支持 FP8/FP4 系列 engine。RTX 5070 8GB 只证明环境可用，不保证 4B 模型量化显存足够。
 
 宿主机使用 Ubuntu 22.04/24.04 x86-64、Docker Server API `>=1.49`、NVIDIA 驱动和 NVIDIA Container Toolkit。安装见 [Docker Engine](https://docs.docker.com/engine/install/ubuntu/) 与 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)。宿主机不安装 Edge-LLM 或平台 Python 依赖。
@@ -29,9 +32,12 @@ test -f "$EDGE_MODEL_LAB_ROOT/README.md"
 export JETSON_ROOT="$EDGE_MODEL_LAB_ROOT/platforms/jetson-orin-nx-16"
 
 git -C "$EDGE_MODEL_LAB_ROOT" submodule update --init --recursive \
-  platforms/jetson-orin-nx-16/vendor/TensorRT-Edge-LLM
+  platforms/jetson-orin-nx-16/vendor/TensorRT-Edge-LLM \
+  platforms/jetson-orin-nx-16/vendor/TensorRT
 test "$(git -C "$JETSON_ROOT/vendor/TensorRT-Edge-LLM" rev-parse HEAD)" \
   = bb291453bc10d9bd1142070c605e090d4e483ee2
+test "$(git -C "$JETSON_ROOT/vendor/TensorRT" rev-parse HEAD)" \
+  = 3b4ddc1d45f11167f2ea53dc6046bba8df800e2d
 ```
 
 按 [NGC 文档](https://docs.nvidia.com/ngc/latest/ngc-catalog-user-guide.html) 登录。API key 只在提示中输入；Docker 会写入 credential helper，未配置 helper 时会以 base64 写入 `~/.docker/config.json`，拉取后可立即登出。
