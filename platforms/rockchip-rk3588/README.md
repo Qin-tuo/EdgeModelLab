@@ -11,17 +11,21 @@
 | 组件 | 版本 | 用途 | 主要产物 |
 | --- | --- | --- | --- |
 | `rknn-toolkit2` | `v2.3.2` | 普通神经网络和多模态视觉子图转换 | `.rknn` |
+| `rknn-model-zoo` | `v2.3.2` | 官方模型转换、推理示例和性能参考 | 示例代码 |
 | `rknn-llm` | `release-v1.3.0` | Qwen 等大语言模型量化与转换 | `.rkllm` |
 
 `rknn-toolkit2` 的板端 Lite API 和 RKNPU2 runtime 用于加载 `.rknn`；
 `rknn-llm` 自带的 RKLLM runtime 用于加载 `.rkllm`。两者都针对 RK3588
 的内置 NPU，不包含 RK1828 算力棒的 RKNN3 runtime。
 
-首次克隆仓库后初始化这两个依赖：
+`rknn-model-zoo` 对应官方仓库 `https://github.com/airockchip/rknn_model_zoo`。
+
+首次克隆仓库后初始化这三个依赖：
 
 ```sh
 git submodule update --init --recursive \
   platforms/rockchip-rk3588/vendor/rknn-toolkit2 \
+  platforms/rockchip-rk3588/vendor/rknn-model-zoo \
   platforms/rockchip-rk3588/vendor/rknn-llm
 ```
 

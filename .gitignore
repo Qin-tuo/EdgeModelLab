@@ -15,6 +15,7 @@ platforms/*/vendor/*
 !platforms/rockchip-rk3588-rk1828/vendor/rknn3-model-zoo/
 !platforms/rockchip-rk3588-rk1828/vendor/rknn3-toolkit/
 !platforms/rockchip-rk3588/vendor/rknn-toolkit2/
+!platforms/rockchip-rk3588/vendor/rknn-model-zoo/
 !platforms/rockchip-rk3588/vendor/rknn-llm/
 platforms/jetson-orin-nx-16/TensorRT-Edge-LLM/
 platforms/jetson-orin-nx-16/TensorRT-Edge-LLM.zip

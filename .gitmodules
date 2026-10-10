@@ -16,3 +16,6 @@
 [submodule "platforms/rockchip-rk3588/vendor/rknn-llm"]
 	path = platforms/rockchip-rk3588/vendor/rknn-llm
 	url = https://github.com/airockchip/rknn-llm.git
+[submodule "platforms/rockchip-rk3588/vendor/rknn-model-zoo"]
+	path = platforms/rockchip-rk3588/vendor/rknn-model-zoo
+	url = https://github.com/airockchip/rknn_model_zoo.git
